@@ -1,5 +1,6 @@
 ###     Git Self Hosted     ###
 name: Deploy to VPS with Docker and Git Actions
+
 on:
   push:
     branches:
@@ -15,7 +16,9 @@ jobs:
       - name: Sinkronisasi file dari S3 ke direktori lokal di VPS
         run: |
           mkdir -p /var/www/html/assets_nginx1
-          aws s3 sync s3://docker-actions /var/www/html/assets_nginx1 --delete
+          mkdir -p /var/www/html/nginx_conf
+          aws s3 sync s3://docker-actions/assets /var/www/html/assets_nginx1 --delete
+          aws s3 sync s3://docker-actions/nginx_conf /var/www/html/nginx_conf --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -29,9 +32,14 @@ jobs:
             echo "Docker network 'my_public_network' already exists. Skipping creation."
           fi
 
-      - name: Start Nginx Container 1
+      - name: Start Nginx Container 1 with Custom Config
         run: |
-          sudo docker run -d --name nginx-container1 --network my_public_network -p 8080:80 -v /var/www/html/assets_nginx1:/usr/share/nginx/html nginx
+          sudo docker run -d --name nginx-container1 \
+            --network my_public_network \
+            -p 8080:80 \
+            -v /var/www/html/assets_nginx1:/usr/share/nginx/html \
+            -v /var/www/html/nginx_conf/nginx.conf:/etc/nginx/nginx.conf \
+            nginx
 
       - name: Check Nginx Status
         run: |
