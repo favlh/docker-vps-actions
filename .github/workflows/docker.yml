@@ -1,0 +1,46 @@
+name: Deploy Nginx Containers with S3 Static Files
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Pull static files from S3
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        aws s3 sync s3://docker-actions /var/www/html/assets
+
+    - name: Deploy Nginx Containers
+      env:
+        VPS_IP: ${{ secrets.VPS_IP }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+        VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}  # Tambahkan password VPS ke secrets
+      run: |
+        # Install sshpass jika belum ada
+        sudo apt-get install -y sshpass
+
+        # Gunakan sshpass untuk SSH ke VPS
+        sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP "
+          # Pull image Nginx dari Docker Hub
+          sudo docker pull nginx;
+
+          # Run container pertama di port 8080
+          sudo docker run -d --name nginx-site1 -p 8080:80 \
+            -v /var/www/html/assets:/usr/share/nginx/html \
+            nginx;
+
+          # Run container kedua di port 8081
+          sudo docker run -d --name nginx-site2 -p 8081:80 \
+            -v /var/www/html/assets:/usr/share/nginx/html \
+            nginx;
+        "
