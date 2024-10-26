@@ -1,4 +1,4 @@
-name: Deploy Nginx Containers with S3 Static Files
+name: Deploy to VPS with Docker and Git Actions
 
 on:
   push:
@@ -8,45 +8,23 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Install AWS CLI
-      run: |
-        sudo apt-get update
-        sudo apt-get install awscli -y
+      - name: Sinkronisasi file dari S3 ke direktori lokal di VPS
+        run: |
+          mkdir -p /var/www/html/assets
+          aws s3 sync s3://docker-actions /var/www/html/assets --delete
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: your-region
 
-    - name: Pull static files from S3
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: |
-        # Sinkronisasi file dari S3 ke direktori lokal di VPS
-        aws s3 sync s3://docker-actions /var/www/html/assets
+      - name: Start Nginx Container 1
+        run: |
+          sudo docker run -d --name nginx-container1 -p 8080:80 -v /var/www/html/assets:/usr/share/nginx/html:ro nginx
 
-    - name: Deploy Nginx Containers
-      env:
-        VPS_IP: ${{ secrets.VPS_IP }}
-        VPS_USER: ${{ secrets.VPS_USER }}
-        VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}  # Password VPS
-      run: |
-        # Install sshpass jika belum ada
-        sudo apt-get install -y sshpass
-
-        # Gunakan sshpass untuk SSH ke VPS
-        sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP "
-          # Pull image Nginx dari Docker Hub
-          sudo docker pull nginx;
-
-          # Jalankan container pertama
-          sudo docker run -d --name nginx-container1 --network host \
-            -v /var/www/html/assets:/usr/share/nginx/html \
-            -p 8080:80 nginx;
-
-          # Jalankan container kedua
-          sudo docker run -d --name nginx-container2 --network host \
-            -v /var/www/html/assets:/usr/share/nginx/html \
-            -p 8081:80 nginx;
-        "
+      - name: Start Nginx Container 2
+        run: |
+          sudo docker run -d --name nginx-container2 -p 8081:80 -v /var/www/html/assets:/usr/share/nginx/html:ro nginx
