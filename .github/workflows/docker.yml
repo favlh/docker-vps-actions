@@ -1,4 +1,4 @@
-name: Deploy to VPS with Docker and Git Actions # Cape
+name: Deploy to VPS with Docker and Git Actions
 
 on:
   push:
@@ -14,6 +14,8 @@ jobs:
 
       - name: Sinkronisasi file dari S3 ke direktori lokal di VPS
         run: |
+          mkdir -p /var/www/html/assets_nginx1
+          mkdir -p /var/www/html/assets_nginx2
           aws s3 sync s3://docker-actions /var/www/html/assets_nginx1 --delete
           aws s3 sync s3://docker-actions /var/www/html/assets_nginx2 --delete
         env:
@@ -21,10 +23,18 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ap-southeast-2
 
+      - name: Check and Create Docker Network
+        run: |
+          if ! sudo docker network inspect my_public_network >/dev/null 2>&1; then
+            sudo docker network create --driver bridge my_public_network
+          else
+            echo "Docker network 'my_public_network' already exists. Skipping creation."
+          fi
+
       - name: Start Nginx Container 1
         run: |
-          sudo docker run -d -p 8080:80 --name nginx-container1 --network bridge -v /var/www/html/assets_nginx1:/usr/share/nginx/html:ro nginx
+          sudo docker run -d --name nginx-container1 --network my_public_network -p 8080:80 -v /var/www/html/assets_nginx1:/usr/share/nginx/html:ro nginx
 
       - name: Start Nginx Container 2
         run: |
-          sudo docker run -d -p 8081:80 --name nginx-container2 --network bridge -v /var/www/html/assets_nginx2:/usr/share/nginx/html:ro nginx
+          sudo docker run -d --name nginx-container2 --network my_public_network -p 8081:80 -v /var/www/html/assets_nginx2:/usr/share/nginx/html:ro nginx
