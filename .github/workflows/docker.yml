@@ -21,10 +21,14 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ap-southeast-2
 
+      - name: Create Docker network
+        run: |
+          sudo docker network create nginx-network || echo "Network already exists"
+
       - name: Start Nginx Container 1
         run: |
-          sudo docker run -d -p 8080:80 --name nginx-container1 --network host -v /var/www/html/assets:/usr/share/nginx/html:ro nginx
+          sudo docker run -d --name nginx-container1 --network nginx-network -p 8080:80 -v /var/www/html/assets:/usr/share/nginx/html:ro nginx
 
       - name: Start Nginx Container 2
         run: |
-          sudo docker run -d -p 8081:80 --name nginx-container2 --network host -v /var/www/html/assets:/usr/share/nginx/html:ro nginx
+          sudo docker run -d --name nginx-container2 --network nginx-network -p 8081:80 -v /var/www/html/assets:/usr/share/nginx/html:ro nginx
