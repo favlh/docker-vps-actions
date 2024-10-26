@@ -14,8 +14,8 @@ jobs:
 
       - name: Sinkronisasi file dari S3 ke direktori lokal di VPS
         run: |
-          mkdir -p /var/www/html/assets
-          aws s3 sync s3://docker-actions /var/www/html/assets --delete
+          aws s3 sync s3://docker-actions /var/www/html/assets_nginx1 --delete
+          aws s3 sync s3://docker-actions /var/www/html/assets_nginx2 --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -23,8 +23,8 @@ jobs:
 
       - name: Start Nginx Container 1
         run: |
-          sudo docker run -d --name nginx-container1 --network bridge -p 8000:80 -v /var/www/html/assets:/usr/share/nginx/html:ro nginx
+          sudo docker run -d -p 8080:80 --name nginx-container1 --network bridge -v /var/www/html/assets_nginx1:/usr/share/nginx/html:ro nginx
 
       - name: Start Nginx Container 2
         run: |
-          sudo docker run -d --name nginx-container2 --network bridge -p 8001:80 -v /var/www/html/assets:/usr/share/nginx/html:ro nginx
+          sudo docker run -d -p 8081:80 --name nginx-container2 --network bridge -v /var/www/html/assets_nginx2:/usr/share/nginx/html:ro nginx
