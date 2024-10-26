@@ -39,3 +39,8 @@ jobs:
       - name: Start Nginx Container 2
         run: |
           sudo docker run -d --name nginx-container2 --network my_public_network -p 8081:80 -v /var/www/html/assets_nginx2:/usr/share/nginx/html nginx
+
+      - name: Check Nginx Status
+        run: |
+          curl -f http://localhost:8080 || echo "Nginx Container 1 is not running!"
+          curl -f http://localhost:8081 || echo "Nginx Container 2 is not running!"
