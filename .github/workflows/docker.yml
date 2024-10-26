@@ -1,4 +1,4 @@
-name: Deploy to VPS with Docker and Git Actions
+name: Deploy to VPS with Docker and Git Actions # Cape
 
 on:
   push:
