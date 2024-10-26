@@ -24,7 +24,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
         # Sinkronisasi file dari S3 ke direktori lokal di VPS
-        aws s3 sync s3://my-static-assets /var/www/html/assets
+        aws s3 sync s3://docker-actions /var/www/html/assets
 
     - name: Deploy Nginx Containers
       env:
