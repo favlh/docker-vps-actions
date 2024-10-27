@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  web:
+    image: wordpress:latest
+    container_name: wordpress-container
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: firja
+      WORDPRESS_DB_PASSWORD: databaseku
+      WORDPRESS_DB_NAME: your_database_name
+    volumes:
+      - ./assets_nginx1:/var/www/html/wp-content/uploads
+    networks:
+      - my_public_network
+
+  db:
+    image: mysql:latest
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: databaseku
+      MYSQL_DATABASE: your_database_name
+      MYSQL_USER: firja
+      MYSQL_PASSWORD: databaseku
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - my_public_network
+
+networks:
+  my_public_network:
+    driver: bridge
+
+volumes:
+  db_data:
