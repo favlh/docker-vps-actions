@@ -1,2 +1,2 @@
-Title : Docker, VPS, Git Actions
-Ini merupakan deply docker container dengan menggunakan git actions
+Title : Docker, VPS, Git Actions, S3
+Ini merupakan deploy docker container dengan menggunakan git actions
