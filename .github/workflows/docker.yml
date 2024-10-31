@@ -1,10 +1,9 @@
-###     Git Self Hosted     ###
+### Git Self Hosted ###
 name: Deploy to VPS with Docker Compose and Git Actions
 
 on:
-  push:
-    branches:
-      - main
+  repository_dispatch:
+    types: [start-deploy]
 
 jobs:
   deploy:
@@ -13,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Sinkronisasi file dari S3 ke direktori lokal di VPS
+      - name: Sync files from S3 to local VPS directory
         run: |
           mkdir -p /var/www/html/assets_nginx1
           aws s3 sync s3://docker-actions/assets /var/www/html/assets_nginx1 --delete
@@ -22,18 +21,19 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ap-southeast-2
 
-      - name: Check and Create Docker Network
-        run: |
-          if ! sudo docker network inspect my_public_network >/dev/null 2>&1; then
-            sudo docker network create --driver bridge my_public_network
-          else
-            echo "Docker network 'my_public_network' already exists. Skipping creation."
-          fi
-
       - name: Start Docker Compose
         run: |
           sudo docker-compose up -d
 
-      - name: Check WordPress Status
+      - name: Backup Docker Volume to S3
         run: |
-          curl -f http://localhost:8080 || echo "WordPress Container is not running!"
+          # Archive the Docker volume data (assumed volume name: `my_volume`)
+          docker run --rm -v my_volume:/volume -v /tmp:/backup alpine \
+            sh -c "cd /volume && tar -czf /backup/my_volume_backup.tar.gz ."
+          
+          # Upload backup to S3
+          aws s3 cp /tmp/my_volume_backup.tar.gz s3://docker-actions/backups/my_volume_backup_$(date +%F).tar.gz
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-southeast-2
