@@ -13,21 +13,26 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Sync files from S3 to local VPS directory
+        # Ensure that the latest assets from S3 are downloaded to the wp-content/uploads directory
+        # This directory is linked to the Docker volume `my_volume` defined in docker-compose.yml
         run: |
-          mkdir -p /var/www/html/assets_nginx1
-          aws s3 sync s3://docker-actions/assets /var/www/html/assets_nginx1 --delete
+          mkdir -p /var/www/html/wp-content/uploads
+          aws s3 sync s3://docker-actions/assets /var/www/html/wp-content/uploads --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ap-southeast-2
 
       - name: Start Docker Compose
+        # Run Docker Compose in detached mode
+        # This starts the containers as defined in docker-compose.yml
         run: |
           sudo docker-compose up -d
 
       - name: Backup Docker Volume to S3
+        # Archive the Docker volume data (matching volume name: `my_volume`)
+        # This volume contains the WordPress wp-content/uploads, where media files are stored
         run: |
-          # Archive the Docker volume data (assumed volume name: `my_volume`)
           docker run --rm -v my_volume:/volume -v /tmp:/backup alpine \
             sh -c "cd /volume && tar -czf /backup/my_volume_backup.tar.gz ."
           
