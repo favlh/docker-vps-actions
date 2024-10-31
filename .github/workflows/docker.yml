@@ -23,9 +23,20 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ap-southeast-2
 
+      - name: Check if Docker Compose is running
+        id: check_compose
+        run: |
+          if sudo docker-compose ps | grep -q 'Up'; then
+            echo "Docker Compose is already running."
+            echo "::set-output name=running::true"
+          else
+            echo "Docker Compose is not running."
+            echo "::set-output name=running::false"
+          fi
+
       - name: Start Docker Compose
-        # Run Docker Compose in detached mode
-        # This starts the containers as defined in docker-compose.yml
+        # Run Docker Compose in detached mode only if it is not running
+        if: steps.check_compose.outputs.running == 'false'
         run: |
           sudo docker-compose up -d
 
@@ -42,3 +53,9 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ap-southeast-2
+
+      - name: Setup Daily Backup Cron Job
+        # Set up a cron job to run the backup script every day at 2 AM / Morning
+        run: |
+          echo "0 2 * * * /usr/local/bin/backup_to_s3.sh" | sudo tee -a /etc/crontab
+          sudo service cron restart
